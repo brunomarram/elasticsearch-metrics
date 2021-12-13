@@ -21,35 +21,35 @@ def fetch_clusterhealth():
         utc_datetime = datetime.datetime.utcnow()
         endpoint = "/_cluster/health"
         response = requests.get(elasticServer + endpoint)
-        jsonData = response.json()
-        clusterName = jsonData['cluster_name']
-        jsonData['@timestamp'] = str(
+        data = response.json()
+        cluster_name = data['cluster_name']
+        data['@timestamp'] = str(
             utc_datetime.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3])
-        if jsonData['status'] == 'green':
-            jsonData['status_code'] = 0
-        elif jsonData['status'] == 'yellow':
-            jsonData['status_code'] = 1
-        elif jsonData['status'] == 'red':
-            jsonData['status_code'] = 2
-        post_data(jsonData)
-        return clusterName
+        if data['status'] == 'green':
+            data['status_code'] = 0
+        elif data['status'] == 'yellow':
+            data['status_code'] = 1
+        elif data['status'] == 'red':
+            data['status_code'] = 2
+        post_data(data)
+        return cluster_name
     except IOError as err:
         print("IOError: Maybe can't connect to elasticsearch.")
-        clusterName = "unknown"
-        return clusterName
+        cluster_name = "unknown"
+        return cluster_name
 
 
 def fetch_clusterstats():
     utc_datetime = datetime.datetime.utcnow()
     endpoint = "/_cluster/stats"
     response = requests.get(elasticServer + endpoint)
-    jsonData = response.json()
-    jsonData['@timestamp'] = str(
+    data = response.json()
+    data['@timestamp'] = str(
         utc_datetime.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3])
-    post_data(jsonData)
+    post_data(data)
 
 
-def fetch_nodestats(clusterName):
+def fetch_nodestats(cluster_name):
     utc_datetime = datetime.datetime.utcnow()
     endpoint = "/_cat/nodes?v&h=n"
     response = requests.get(elasticServer + endpoint)
@@ -58,27 +58,27 @@ def fetch_nodestats(clusterName):
     for node in nodes:
         endpoint = "/_nodes/%s/stats" % node.rstrip()
         response = requests.get(elasticServer + endpoint)
-        jsonData = response.json()
-        nodeID = jsonData['nodes'].keys()
+        data = response.json()
+        nodeID = data['nodes'].keys()
         try:
-            jsonData['nodes'][nodeID[0]]['@timestamp'] = str(
+            data['nodes'][nodeID[0]]['@timestamp'] = str(
                 utc_datetime.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3])
-            jsonData['nodes'][nodeID[0]]['cluster_name'] = clusterName
-            newJsonData = jsonData['nodes'][nodeID[0]]
-            post_data(newJsonData)
+            data['nodes'][nodeID[0]]['cluster_name'] = cluster_name
+            newdata = data['nodes'][nodeID[0]]
+            post_data(newdata)
         except:
             continue
 
 
-def fetch_indexstats(clusterName):
+def fetch_indexstats(cluster_name):
     utc_datetime = datetime.datetime.utcnow()
     endpoint = "/_stats"
     response = requests.get(elasticServer + endpoint)
-    jsonData = response.json()
-    jsonData['_all']['@timestamp'] = str(
+    data = response.json()
+    data['_all']['@timestamp'] = str(
         utc_datetime.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3])
-    jsonData['_all']['cluster_name'] = clusterName
-    post_data(jsonData['_all'])
+    data['_all']['cluster_name'] = cluster_name
+    post_data(data['_all'])
 
 
 def post_data(data):
@@ -94,24 +94,25 @@ def post_data(data):
 
 
 def main():
-    clusterName = fetch_clusterhealth()
-    if clusterName != "unknown":
+    cluster_name = fetch_clusterhealth()
+    if cluster_name != "unknown":
         fetch_clusterstats()
-        fetch_nodestats(clusterName)
-        fetch_indexstats(clusterName)
+        fetch_nodestats(cluster_name)
+        fetch_indexstats(cluster_name)
 
 
 if __name__ == '__main__':
     try:
-        nextRun = 0
+        print("start")
+        next = 0
         while True:
-            if time.time() >= nextRun:
-                nextRun = time.time() + interval
+            if time.time() >= next:
+                next = time.time() + interval
                 now = time.time()
                 main()
                 elapsed = time.time() - now
                 print("Total Elapsed Time: %s" % elapsed)
-                timeDiff = nextRun - time.time()
+                timeDiff = next - time.time()
 
                 # Check timediff , if timediff >=0 sleep, if < 0 send metrics to es
                 if timeDiff >= 0:
