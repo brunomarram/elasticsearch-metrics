@@ -59,14 +59,15 @@ def fetch_nodestats(cluster_name):
         endpoint = "/_nodes/%s/stats" % node.rstrip()
         response = requests.get(elasticServer + endpoint)
         data = response.json()
-        nodeID = data['nodes'].keys()
+        nodeID = list(data['nodes'].keys())
         try:
             data['nodes'][nodeID[0]]['@timestamp'] = str(
                 utc_datetime.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3])
             data['nodes'][nodeID[0]]['cluster_name'] = cluster_name
             newdata = data['nodes'][nodeID[0]]
             post_data(newdata)
-        except:
+        except Exception as ex:
+            print("error on identify node: ", ex)
             continue
 
 
