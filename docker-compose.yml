@@ -1,0 +1,11 @@
+version: '3.7'
+
+services:
+  es-monitor:
+    build: .
+    image: es-monitor:0.6
+    container_name: es-monitor
+    env_file:
+      - ./.env
+    volumes:
+      - ./:/es-monitor
